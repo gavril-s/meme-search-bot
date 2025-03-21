@@ -1,32 +1,28 @@
+version: '3.8'
+
 services:
-  postgres:
+  db:
     image: postgres:15
-    container_name: meme-search-postgres
+    container_name: meme_search_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: meme_search
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
       - "5432:5432"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    restart: always
 
-  bot:
+  app:
     build: .
-    container_name: meme-search-bot
+    container_name: meme_search_bot
+    depends_on:
+      - db
     volumes:
       - .:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
+    restart: always
 
 volumes:
   postgres_data:

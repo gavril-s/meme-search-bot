@@ -1,93 +1,94 @@
-# Telegram Meme Search Bot
+# Meme Search Bot
 
-A Telegram bot that provides full-text search for images in a specific channel or group based on their descriptions.
-
-## Overview
-
-This bot monitors a specified Telegram channel and group for posts containing images. 
-
-For the channel, when an image is posted, the bot waits for a description to be added.
-
-For the group, when a specific description bot replies to a message containing an image, the bot saves the image from the original message and the description from the bot's reply to a PostgreSQL database.
-
-Users can then search for images by sending text queries to the bot, which performs a full-text search to find the most relevant images from both the channel and the group.
+A Telegram bot that monitors a target group for memes, saves them with their descriptions, and provides full-text search functionality.
 
 ## Features
 
-- Monitors a specific Telegram channel for new image posts
-- Monitors a specific Telegram group for messages from a description bot
-- Saves images and their descriptions to a PostgreSQL database
-- Provides full-text search functionality using PostgreSQL's trigram similarity
-- Returns the most relevant images based on the search query
-- Allows users to view more search results
-- Shows the source (channel or group) of each image in search results
+- Monitors a target Telegram group for images
+- Saves image-description pairs to a PostgreSQL database
+- Provides full-text search capabilities to find memes based on text queries
+- Optimized for search performance with PostgreSQL's full-text search features
 
 ## Requirements
 
 - Python 3.8+
-- PostgreSQL 17+
-- Docker and Docker Compose
+- Docker and Docker Compose (for running PostgreSQL)
+- Telegram Bot Token (from BotFather)
 
 ## Setup
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/meme-search-bot.git
-   cd meme-search-bot
-   ```
+### 1. Configure the bot
 
-2. Configure the bot:
-   - Edit `config.json` to set your Telegram bot token, target channel, target group, and description bot username
+Edit the `config.json` file and fill in your details:
 
-3. Build and run the Docker containers:
-   ```
-   docker-compose up -d
-   ```
+```json
+{
+  "bot_token": "YOUR_BOT_TOKEN",
+  "target_group_username": "YOUR_TARGET_GROUP_USERNAME",
+  "bot_username": "YOUR_BOT_USERNAME",
+  "database": {
+    "host": "db",
+    "port": 5432,
+    "user": "postgres",
+    "password": "postgres",
+    "database": "meme_search"
+  }
+}
+```
 
-4. The bot should now be running and monitoring the specified channel and group.
+### 2. Set up the Python environment
 
-## Local Development
+Run the setup script to create a virtual environment and install dependencies:
 
-If you want to develop the bot locally without Docker:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
 
-1. Create a virtual environment:
-   ```
-   ./setup.sh
-   ```
+### 3. Run the bot
 
-2. Activate the virtual environment:
-   ```
-   source venv/bin/activate
-   ```
+#### Using Docker Compose (recommended)
 
-3. Make sure PostgreSQL is running and accessible.
+This will start both the PostgreSQL database and the bot:
 
-4. Run the bot:
-   ```
-   python bot.py
-   ```
+```bash
+docker-compose up -d
+```
 
-## Database Schema
+#### Running locally (development)
 
-The bot uses a PostgreSQL database with the following schema:
+First, make sure you have PostgreSQL running (you can use Docker for this):
 
-- `meme_images` table:
-  - `id`: Serial primary key
-  - `message_id`: Telegram message ID
-  - `channel_id`: Telegram channel or group ID (used for both)
-  - `file_id`: Telegram file ID for the image
-  - `description`: Text description of the image
-  - `created_at`: Timestamp when the record was created
+```bash
+docker-compose up -d db
+```
+
+Then, activate the virtual environment and run the bot:
+
+```bash
+source venv/bin/activate
+python bot.py
+```
 
 ## How It Works
 
-1. The bot uses python-telegram-bot to monitor both the target channel and group:
-   - For the channel: When a new image is posted, the bot checks for a description (placeholder implementation).
-   - For the group: When the description bot replies to a message containing an image, the bot extracts the image from the original message and the description from the bot's reply.
-2. The bot saves the image and description to the database.
-3. When a user sends a text query to the bot, it performs a full-text search using PostgreSQL's trigram similarity.
-4. The bot returns the most relevant image(s) based on the search query, indicating whether each image is from the channel or the group.
+1. The bot monitors the specified Telegram group for images
+2. When an image is posted, it's stored in memory
+3. When the bot (with the username specified in config) replies to an image with a description, the image-description pair is saved to the database
+4. Users can send text queries to the bot in private messages to search for memes
+5. The bot uses PostgreSQL's full-text search to find the best matching memes and returns them
 
-## License
+## Database Structure
 
-MIT
+The database uses PostgreSQL's full-text search capabilities:
+
+- `pg_trgm` extension for similarity search
+- TSVECTOR column for efficient text search
+- GIN indexes for fast lookups
+- Custom search function that combines exact matching and similarity ranking
+
+## Troubleshooting
+
+- Make sure your bot has access to the target group
+- Ensure the bot has the necessary permissions to read messages in the group
+- Check the logs for any errors: `docker-compose logs -f app`
